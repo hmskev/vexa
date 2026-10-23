@@ -6,12 +6,13 @@
  */
 import { NextResponse } from "next/server";
 import { instanceHasAdmin } from "../adminApi";
+import { passwordAuthEnabled } from "../passwordAuth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   return NextResponse.json(
-    { admin_exists: await instanceHasAdmin() },
+    { admin_exists: await instanceHasAdmin(), ...(passwordAuthEnabled() ? { password_auth: true } : {}) },
     { headers: { "Cache-Control": "no-store" } },
   );
 }
