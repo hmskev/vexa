@@ -40,6 +40,7 @@ const AUTH_COOKIE = process.env.VEXA_AUTH_COOKIE_NAME || "vexa-token";
  *  Resolution mirrors proxyAuth.ts: cookie token → VEXA_API_KEY → VEXA_BOT_API_KEY → "". */
 function resolveUpstreamKey(req) {
   const cookieToken = readCookie(req.headers.cookie, AUTH_COOKIE);
+  if (process.env.VEXA_PASSWORD_AUTH_FILE) return cookieToken || "";
   return cookieToken || process.env.VEXA_API_KEY || process.env.VEXA_BOT_API_KEY || "";
 }
 

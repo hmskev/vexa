@@ -3,7 +3,7 @@
  *  cookies means authenticated. */
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { AUTH_COOKIE, USER_INFO_COOKIE } from "../adminApi";
+import { AUTH_COOKIE, USER_INFO_COOKIE, validateAuthToken } from "../adminApi";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +18,11 @@ export async function GET() {
     return NextResponse.json({ authenticated: false }, { status: 401, headers: NO_STORE });
   }
 
+  if (process.env.VEXA_PASSWORD_AUTH_FILE) {
+    const verified = await validateAuthToken(token);
+    if (!verified.ok) return NextResponse.json({ authenticated: false }, { status: verified.status, headers: NO_STORE });
+    return NextResponse.json({ authenticated: true, user: { email: verified.email, name: verified.email.split("@")[0] } }, { headers: NO_STORE });
+  }
   let email: string | undefined;
   let name: string | undefined;
   if (info) {

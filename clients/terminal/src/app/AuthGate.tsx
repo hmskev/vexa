@@ -22,6 +22,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const [adminExists, setAdminExists] = useState(true); // fail-safe: plain sign-in until told otherwise
   const [showDebug, setShowDebug] = useState(false);
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordMode, setPasswordMode] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,7 +41,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     // First-run probe — {admin_exists:false} flips the card into the admin-claim variant.
     fetch("/api/auth/instance", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : { admin_exists: true }))
-      .then((d: { admin_exists?: boolean }) => active && setAdminExists(d.admin_exists !== false))
+      .then((d: { admin_exists?: boolean; password_auth?: boolean }) => {
+        if (active) { setAdminExists(d.admin_exists !== false); setPasswordMode(d.password_auth === true); }
+      })
       .catch(() => undefined);
     return () => { active = false; };
   }, []);
@@ -54,7 +58,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       const r = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: value }),
+        body: JSON.stringify(passwordMode ? { email: value, password } : { email: value }),
       });
       if (r.ok) { window.location.reload(); return; }
       const body = (await r.json().catch(() => ({}))) as { error?: string };
@@ -69,8 +73,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   if (status === "in") return <>{children}</>;
   if (status === "checking") return <div style={{ height: "100vh", background: "var(--bg)" }} />;
 
-  const hasOAuth = providers.google || providers.microsoft;
-  const claiming = !adminExists; // fresh instance → this sign-in claims the admin role
+  const hasOAuth = !passwordMode && (providers.google || providers.microsoft);
+  const claiming = !passwordMode && !adminExists; // fresh instance → this sign-in claims the admin role
 
   return (
     <div style={{ height: "100vh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -119,12 +123,12 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           <div style={{ fontSize: 12, color: "var(--t3)", lineHeight: 1.5 }}>Sign in to continue.</div>
         )}
 
-        {providers.google && (
+        {!passwordMode && providers.google && (
           <button onClick={() => signIn("google", { callbackUrl: window.location.pathname + window.location.search })} style={oauthBtn}>
             <GoogleMark /> Continue with Google
           </button>
         )}
-        {providers.microsoft && (
+        {!passwordMode && providers.microsoft && (
           <button onClick={() => signIn("microsoft", { callbackUrl: window.location.pathname + window.location.search })} style={oauthBtn}>
             <MicrosoftMark /> Continue with Microsoft
           </button>
@@ -142,21 +146,29 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         {(!hasOAuth || showDebug) && (
           <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <div style={{ fontSize: 11, color: "var(--t3)", lineHeight: 1.4 }}>
-              {claiming && !hasOAuth
+              {passwordMode ? "Sign in with your email and password." : claiming && !hasOAuth
                 ? "Email — must contain “test” (test mode)."
                 : "Debug login — email must contain “test”."}
             </div>
             <input
               type="email"
+              aria-label="Email"
+              name="email"
+              autoComplete="username"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you-test@company.com"
+              placeholder={passwordMode ? "you@company.com" : "you-test@company.com"}
               style={{
                 background: "var(--panel2)", border: "1px solid var(--line2)", borderRadius: 7,
                 padding: "9px 10px", color: "var(--t1)", fontSize: 13, outline: "none",
               }}
             />
+            {passwordMode && (
+              <input type="password" name="password" aria-label="Password" autoComplete="current-password" required maxLength={1024}
+                value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password"
+                style={{ background: "var(--panel2)", border: "1px solid var(--line2)", borderRadius: 7, padding: "9px 10px", color: "var(--t1)", fontSize: 13 }} />
+            )}
             {error && <div style={{ fontSize: 11, color: "var(--danger)", lineHeight: 1.4 }}>{error}</div>}
             <button
               type="submit"

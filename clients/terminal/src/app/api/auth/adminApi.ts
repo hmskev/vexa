@@ -314,7 +314,7 @@ export async function findOrCreateUserToken(
   // Mint the login token with a stable `terminal-login` name so it is distinguishable from
   // user-created self-serve tokens and can be bounded (find-or-create used to mint unconditionally
   // with no name and no cap → one live token per sign-in, forever).
-  const minted = await mintUserToken(user.id, { scopes: ["bot", "tx", "browser"], name: TERMINAL_LOGIN_TOKEN_NAME });
+  const minted = await mintUserToken(user.id, { scopes: ["bot", "tx", "browser"], name: TERMINAL_LOGIN_TOKEN_NAME, ...(process.env.VEXA_PASSWORD_AUTH_FILE ? { expiresIn: 60 * 60 * 24 * 7 } : {}) });
   if (!minted.ok || !minted.data?.token) {
     return { ok: false, status: minted.status || 500, error: minted.error || "Failed to mint API token" };
   }

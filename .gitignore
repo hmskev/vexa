@@ -31,5 +31,9 @@ docs/views/*
 # transcription service downloaded model weights (runtime cache)
 deploy/transcription/models/
 
+# Self-hosted credential hashes and protected database/configuration backups.
+/deploy/compose/auth/
+/backups/
+
 # Release working handoff notes are local-only (per-version); witness.json stays tracked.
 releases/*/HANDOFF.md

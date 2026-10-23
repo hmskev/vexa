@@ -16,5 +16,6 @@ export async function resolveApiKey(): Promise<string> {
   } catch {
     cookieToken = undefined;
   }
+  if (process.env.VEXA_PASSWORD_AUTH_FILE) return cookieToken || "";
   return cookieToken || process.env.VEXA_API_KEY || process.env.VEXA_BOT_API_KEY || "";
 }
